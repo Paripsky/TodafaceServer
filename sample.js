@@ -61,7 +61,8 @@ app.post('/image', function (req, res) {
   // if (image != '') { image = getBinary(image) }
   if (image === '') return console.error('No image given');
 
-  analyzeFaces(image)
+  detectFaces(image)
+    .then(analyzeFaces)
     .then(indexFaces)
     .then(getDataForFace)
     .then(generateOrderStringToSpeak)
@@ -121,7 +122,22 @@ app.listen(3000, function () {
   console.log('Example app listening on port 3000!')
 })
 
-function analyzeFaces(image) {
+function detectFaces(image) {
+  return new Promise((resolve, reject) => {
+    rekognition.detectFaces({
+      Attributes: ["ALL", "DEFAULT"],
+      Image: { Bytes: image }
+    }, function (err, payload) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({ image: image, payloadState: payload.FaceDetails });
+      }
+    });
+  });
+}
+
+function analyzeFaces({ image, payloadState = null }) {
   return new Promise((resolve, reject) => {
     rekognition.searchFacesByImage({
       CollectionId: COLLECTION_ID,
@@ -133,17 +149,45 @@ function analyzeFaces(image) {
         // return console.error(err);
         reject(err);
       } else {
-        resolve({ image: image, payloadState: payload.FaceMatches })
+        resolve({ image: image, payloadState: payload, detectedFaces: payloadState })
       }
     });
   });
 }
 
-function indexFaces({ image, payloadState = null }) {
+function indexFaces({ image, payloadState = null, detectedFaces = null }) {
   return new Promise((resolve, reject) => {
-    if (payloadState && payloadState.length != 0) {
-      const faceId = payloadState[0].Face.FaceId;
-      resolve(faceId);
+    if (payloadState && payloadState.FaceMatches && payloadState.FaceMatches.length != 0) {
+      const faceId = payloadState.FaceMatches[0].Face.FaceId;
+      const searchedFaceDetails = detectedFaces.filter(x => {
+        const detailsToFind = payloadState.FaceMatches[0].Face.BoundingBox;
+        return (
+          x.BoundingBox.Top.toFixed(4) === detailsToFind.Top.toFixed(4) &&
+          x.BoundingBox.Left.toFixed(4) === detailsToFind.Left.toFixed(4)
+        );
+      })[0];
+
+      var dynamoParams = {
+        TableName: DYNAMO_TABLE_NAME,
+        Key: {
+          "face_id": faceId
+        },
+        UpdateExpression: "set faceDetail = :f",
+        ExpressionAttributeValues: {
+          ":f": searchedFaceDetails
+        },
+        ReturnValues: "UPDATED_NEW"
+      };
+
+      console.log("Updating the item...");
+      dynamoDB.update(dynamoParams, function (err, data) {
+        if (err) {
+          console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
+          reject("Unable to update item. Error JSON:", JSON.stringify(err, null, 2))
+        }
+      });
+
+      resolve({ faceId, details: searchedFaceDetails });
     } else {
       rekognition.indexFaces({
         CollectionId: COLLECTION_ID,
@@ -174,7 +218,10 @@ function indexFaces({ image, payloadState = null }) {
             }
           });
 
-          resolve(payload.FaceRecords[0].Face.FaceId);
+          resolve({
+            faceId: payload.FaceRecords[0].Face.FaceId,
+            details: payload.FaceRecords[0].FaceDetail
+          });
         } else {
           reject(err);
         }
@@ -183,9 +230,8 @@ function indexFaces({ image, payloadState = null }) {
   });
 }
 
-function getDataForFace(faceId) {
+function getDataForFace({ faceId, details }) {
   return new Promise((resolve, reject) => {
-    // todo-DB: get data for given faceId
     var dynamoParams = {
       TableName: DYNAMO_TABLE_NAME,
       Key: {
@@ -199,13 +245,15 @@ function getDataForFace(faceId) {
         reject("Unable to read item. Error JSON:", JSON.stringify(err, null, 2))
       }
 
-      resolve(data)
+      resolve({ orderData: data, details })
     });
   });
 }
 
-function generateOrderStringToSpeak(orderData = null) {
+function generateOrderStringToSpeak({ orderData = null, details = null }) {
   return new Promise((resolve, reject) => {
+    const _details = details;
+
     if (!orderData) {
       reject('There is no data');
     } else {
