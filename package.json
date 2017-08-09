@@ -3,6 +3,7 @@
         "aws-sdk": ">= 2.0.9",
         "body-parser": "^1.17.2",
         "express": "^4.15.4",
-        "node-uuid": ">= 1.4.1"
+        "node-uuid": ">= 1.4.1",
+        "request": "^2.81.0"
     }
 }
