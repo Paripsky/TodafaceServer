@@ -31,8 +31,8 @@ var express = require('express'),
 
 // parse application/x-www-form-urlencoded
 // parse application/json
-app.use(bodyParser.json({limit: '50mb'}));
-app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 var polly = new AWS.Polly();
 let rekognition = new AWS.Rekognition();
@@ -129,13 +129,13 @@ function analyzeFaces(image) {
         // return console.error(err);
         reject(err);
       } else {
-        resolve({image: image, payloadState: payload.FaceMatches})
+        resolve({ image: image, payloadState: payload.FaceMatches })
       }
     });
   });
 }
 
-function indexFaces({image, payloadState = null}) {
+function indexFaces({ image, payloadState = null }) {
   return new Promise((resolve, reject) => {
     if (payloadState && payloadState.length != 0) {
       const faceId = payloadState[0].Face.FaceId;
@@ -147,7 +147,7 @@ function indexFaces({image, payloadState = null}) {
         Image: { Bytes: image }
       }, function (err, payload) {
         if (err) reject(err); //return console.error(err);
-        
+
         if (payload.FaceRecords.length > 0) {
           console.log("successfuly added " + payload.FaceRecords.length + " faces to the collection");
           // todo-DB: add new face to DB
