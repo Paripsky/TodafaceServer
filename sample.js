@@ -258,24 +258,32 @@ function generateOrderStringToSpeak({ orderData = null, details = null }) {
       reject('There is no data');
     } else {
       let string = "This is ";
-      string += orderData.Item.name + " last time ";
+      string += orderData.Item.name + ". ";
 
       if (orderData.Item.faceDetail.Gender.Value == "Male") {
-        string += "he";
+        string += "He";
       } else {
-        string += "she";
+        string += "She";
       }
 
-      string += " ordered " + orderData.Item.favDrinks[orderData.Item.favDrinks.length - 1] + ". ";
+      let number1 = Math.floor(Math.random() * (2 - 0 + 1)) + 0
+      let number2 = Math.floor(Math.random() * (2 - 0 + 1)) + 0
+
+      while (orderData.Item.favDrinks[number1] == orderData.Item.favDrinks[number2]) {
+        number1 = Math.floor(Math.random() * (2 - 0 + 1)) + 0
+        number2 = Math.floor(Math.random() * (2 - 0 + 1)) + 0
+      }
+
+      string += " likes " + orderData.Item.favDrinks[number1] + " and " + orderData.Item.favDrinks[number2] + ". ";
 
       if (!orderData.Item.faceDetail.Smile.Value) {
         if (orderData.Item.faceDetail.Gender.Value == "Male") {
-          string += "he";
+          string += "He";
         } else {
-          string += "she";
+          string += "She";
         }
 
-        string += " seems sad give ";
+        string += " seems sad, You should give ";
 
         if (orderData.Item.faceDetail.Gender.Value == "Male") {
           string += "him";
@@ -283,7 +291,7 @@ function generateOrderStringToSpeak({ orderData = null, details = null }) {
           string += "her";
         }
 
-        string += " free drink!";
+        string += " a free drink!";
       }
 
       resolve(string);
@@ -314,25 +322,25 @@ function generateName() {
 
   let max = string.length - 1
   let min = 0
-  let number = Math.floor(Math.random() * (max - min)) + min;
+  let number = Math.floor(Math.random() * (max - min + 1)) + min
 
   return string[number]
 }
 
 function generateDrinks() {
-  let string = "shoko beer water cola pinacolada martini whiskey Plums Pineapples	Pears	Grapes Wheat Rye Rice	Corn Arak Brandy Borovička Ogogoro Milk"
+  let string = "shoko beer water wine cola pinacolada martini whiskey arak brandy milk fanta cubalibra mojito tequila"
   string = string.split(" ")
 
-  let max = 10 - 1
-  let min = 0
-  let number = Math.floor(Math.random() * (max - min)) + min;
+  let max = 10
+  let min = 3
+  let number = Math.floor(Math.random() * (max - min + 1)) + min
 
   let arrayToReturn = []
 
   for (let i = 0; i < number; i++) {
     max = string.length - 1
     min = 0
-    arrayToReturn.push(string[Math.floor(Math.random() * (max - min)) + min])
+    arrayToReturn.push(string[Math.floor(Math.random() * (max - min + 1)) + min])
   }
 
   return arrayToReturn
