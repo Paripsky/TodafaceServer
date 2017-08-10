@@ -108,7 +108,7 @@ app.get('/', function (req, res) {
   }
 });
 
-app.listen(3000, function () {
+app.listen(process.env.PORT || 3000, function () {
   rekognition.createCollection({ CollectionId: COLLECTION_ID }, (err, payload) => {
     if (err) {
       if (err.statusCode !== 400)
@@ -203,9 +203,9 @@ function indexFaces({ image, payloadState = null, detectedFaces = null }) {
             TableName: DYNAMO_TABLE_NAME,
             Item: {
               "face_id": payload.FaceRecords[0].Face.FaceId,
-              "name": generateName(),
+              "name": generateName() || "ben",
               "faceDetail": payload.FaceRecords[0].FaceDetail,
-              "favDrinks": generateDrinks()
+              "favDrinks": generateDrinks() || ["tea", "water", "cola", "protein"]
             }
           };
 
